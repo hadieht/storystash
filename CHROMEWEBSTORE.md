@@ -74,7 +74,7 @@ Certifications → tick all three:
 - [x] I do not use or transfer user data for purposes that are unrelated to my item's single purpose
 - [x] I do not use or transfer user data to determine creditworthiness or for lending purposes
 
-**Privacy policy URL**: `https://<github-username>.github.io/<repo>/privacy.html`  ← fill in after GitHub Pages is live (source: `docs/privacy.html`)
+**Privacy policy URL**: `https://hadieht.github.io/storystash/privacy.html`  ← fill in after GitHub Pages is live (source: `docs/privacy.html`)
 
 ## Graphics & Assets  (store-assets/)
 | Asset | Size | Status | File |
@@ -97,8 +97,8 @@ Screenshots use generated sample images and fictional account names (no real use
 ## Developer Info
 **Publisher name**: Hadi Ehterami
 **Contact email**: hadi.ehterami@gmail.com (must be verified in the dashboard → Account)
-**Support**: hadi.ehterami@gmail.com (or the GitHub Issues page once the repo exists)
-**Homepage**: `https://<github-username>.github.io/<repo>/` (source: `docs/index.html`)
+**Support**: hadi.ehterami@gmail.com or https://github.com/hadieht/storystash/issues
+**Homepage**: `https://hadieht.github.io/storystash/` (source: `docs/index.html`)
 
 ## Version History
 | Version | Date | Changes | Status |

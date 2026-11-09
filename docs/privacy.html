@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>StoryStash – Privacy Policy</title>
+  <link rel="icon" href="icon-128.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <header><img src="icon-128.png" width="64" height="64" alt=""><h1>StoryStash – Privacy Policy</h1></header>
+  <p class="muted">Effective date: November 9, 2026 · Applies to the StoryStash – Story &amp; Post Saver extension for Google Chrome.</p>
+
+  <h2>Summary</h2>
+  <p><strong>StoryStash does not collect, store, sell or share any personal data.</strong> There are no accounts,
+  no analytics, no tracking and no advertising. Everything the extension does happens inside your own browser,
+  and nothing is ever sent to the developer.</p>
+
+  <h2>What the extension does</h2>
+  <p>StoryStash adds a download button to stories, photos and videos on instagram.com. When you press the button,
+  the extension saves that photo or video to your computer, named with the account's username and the date.</p>
+
+  <h2>Information handled on your device</h2>
+  <p>The following information is <strong>handled only on your device; it is never transmitted to the developer or to any third party.</strong></p>
+  <ul>
+    <li><strong>Website content on instagram.com</strong> – while you browse instagram.com, the extension reads the
+      media information Instagram's own page receives (photo and video addresses, usernames and dates) and keeps it in
+      the open tab's memory, so it can find the largest file when you press a download button and name the file with
+      the username and date. It is discarded when you close or reload the tab.</li>
+    <li><strong>Instagram security token</strong> – when you press a download button and the page does not already have
+      the largest file, the extension reads Instagram's CSRF security token from the page and sends one request to
+      instagram.com for that single post or story, the same request Instagram's own website makes. This uses your
+      existing Instagram login; the extension never sees or stores your password. You can turn this off in the
+      extension's settings ("Ask Instagram for the largest file").</li>
+    <li><strong>Your settings</strong> – the four options in the extension's popup (date style, folder name,
+      per-user folders, "ask Instagram for the largest file") are stored locally in your browser with Chrome's local storage.
+      They are not synced or transmitted anywhere.</li>
+    <li><strong>Downloaded files</strong> – saved to your own Downloads folder. The extension only checks the file
+      name Chrome chose so it can correct it if another extension renamed it.</li>
+  </ul>
+
+  <h2>Network requests</h2>
+  <p>To get the largest available file, the extension may request information about the post or story you clicked
+  directly from instagram.com (only after you press a download button, one request per click), and downloads the file from Instagram's own content servers
+  (cdninstagram.com / fbcdn.net). These requests go straight from your browser to Instagram, the same way
+  Instagram's website loads them, using your existing Instagram session. They are never routed through, copied to,
+  or logged by any server of the developer. The extension contacts no other servers.</p>
+
+  <h2>What we do not do</h2>
+  <ul>
+    <li>No collection of personal information, browsing history, passwords, cookies or messages.</li>
+    <li>No selling or transferring of user data to third parties.</li>
+    <li>No use of data for purposes unrelated to saving the item you chose.</li>
+    <li>No use of data to determine creditworthiness or for lending purposes.</li>
+    <li>No remote code: all code is included in the extension package.</li>
+  </ul>
+  <p>StoryStash's use of information complies with the
+  <a href="https://developer.chrome.com/docs/webstore/program-policies/policies">Chrome Web Store User Data Policy</a>,
+  including the Limited Use requirements.</p>
+
+  <h2>Permissions</h2>
+  <ul>
+    <li><code>downloads</code> – save the chosen photo or video to your Downloads folder with a clear name.</li>
+    <li><code>storage</code> – remember your settings on this device.</li>
+    <li>Runs on <code>www.instagram.com</code> pages – to show the download buttons and find the largest file of the item you clicked.</li>
+    <li>Access to <code>*.cdninstagram.com</code> and <code>*.fbcdn.net</code> – fetch the photo or video file itself (and convert WebP photos to JPG on your device).</li>
+  </ul>
+
+  <h2>Children</h2>
+  <p>The extension is not directed at children and collects no data from anyone.</p>
+
+  <h2>Your responsibility</h2>
+  <p>Only save content you own or have permission to keep, and respect the creators' rights and Instagram's Terms of Use.
+  StoryStash is an independent project and is not affiliated with, endorsed or sponsored by Instagram or Meta Platforms, Inc.
+  Instagram is a trademark of Meta Platforms, Inc.</p>
+
+  <h2>Changes</h2>
+  <p>If this policy changes, the new version will be published on this page with a new effective date.</p>
+
+  <h2>Contact</h2>
+  <p>Hadi Ehterami – <a href="mailto:hadi.ehterami@gmail.com">hadi.ehterami@gmail.com</a></p>
+  <p><a href="index.html">← StoryStash home</a></p>
+</main>
+</body>
+</html>

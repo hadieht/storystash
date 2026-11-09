@@ -1,0 +1,6 @@
+# build / scratch
+store-assets/src/
+*.log
+.DS_Store
+Thumbs.db
+__pycache__/

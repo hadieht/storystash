@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>StoryStash</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <h1>StoryStash</h1>
+  <p class="hint">Open instagram.com and press the <b>⤓</b> button on any photo, video or story.</p>
+
+  <label class="row">Date in file name
+    <select id="dateSource">
+      <option value="posted">Date the post/story was published</option>
+      <option value="downloaded">Date I downloaded it</option>
+    </select>
+  </label>
+
+  <label class="row">Folder inside Downloads
+    <input id="folder" type="text" placeholder="(none)">
+  </label>
+
+  <label class="check"><input id="perUserFolder" type="checkbox"> Separate folder per username</label>
+  <label class="check"><input id="useApi" type="checkbox"> Ask Instagram for the largest file if the page doesn't have it (uses your Instagram login, only when you click)</label>
+
+  <p class="example">Example: <code id="example"></code></p>
+  <p id="status" class="status"></p>
+  <p class="legal">Not affiliated with Instagram or Meta. Only save content you have the right to keep.</p>
+
+  <script src="../src/utils.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

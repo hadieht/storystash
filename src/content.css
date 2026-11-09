@@ -1,0 +1,52 @@
+.igdl-btn {
+  position: absolute !important;
+  top: 64px; /* below Instagram's "⋯" menu / header so it is always clickable */
+  right: 12px;
+  z-index: 2147483000 !important;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  margin: 0;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  pointer-events: auto !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  opacity: 0.85;
+  transition: transform 0.12s ease, opacity 0.12s ease, background 0.12s ease;
+}
+.igdl-btn:hover { opacity: 1; transform: scale(1.08); background: rgba(0, 0, 0, 0.75); }
+.igdl-btn.igdl-story { top: 84px; right: 12px; }
+/* story button: fixed on top of the whole page (inline top/left set by script) */
+.igdl-btn.igdl-floating { position: fixed !important; right: auto; z-index: 2147483647 !important; }
+.igdl-btn.igdl-busy { pointer-events: none; }
+.igdl-btn.igdl-busy svg { animation: igdl-pulse 0.8s ease-in-out infinite alternate; }
+.igdl-btn.igdl-done { background: #1f9d55; opacity: 1; }
+.igdl-btn.igdl-fail { background: #d33; opacity: 1; }
+@keyframes igdl-pulse { from { opacity: 0.3; } to { opacity: 1; } }
+
+#igdl-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%) translateY(20px);
+  z-index: 2147483647;
+  max-width: 90vw;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: #222;
+  color: #fff;
+  font: 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  word-break: break-all;
+}
+#igdl-toast.igdl-show { opacity: 1; transform: translateX(-50%) translateY(0); }
+#igdl-toast.igdl-error { background: #b3261e; }

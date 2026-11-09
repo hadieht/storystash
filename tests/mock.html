@@ -1,0 +1,91 @@
+<!doctype html>
+<!-- Integration harness: fake Instagram DOM + stubbed chrome/fetch.
+     Serve the repo root (python3 -m http.server 8765) and open /tests/mock.html -->
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../src/content.css">
+<style>
+  body{font-family:sans-serif} article{width:470px;margin:20px;border:1px solid #ccc}
+  .frame{width:470px;height:470px;overflow:hidden;position:relative}
+  ul{list-style:none;margin:0;padding:0;display:flex;}
+  li{flex:0 0 470px;height:470px;position:relative}
+  li div{width:470px;height:470px}
+  img{width:470px;height:470px;display:block;background:#ddd}
+</style></head>
+<body>
+<!-- Feed post 1: carousel with 3 photos -->
+<article id="post1">
+  <header><a href="/alice/" role="link">alice</a><img alt="alice's profile picture" src="https://x.cdninstagram.com/v/avatar_n.jpg" style="width:32px;height:32px"></header>
+  <div class="frame"><ul id="ul1">
+    <li><div><img src="https://x.cdninstagram.com/v/t51/111_AAA_n.jpg?stp=p640" srcset="https://x.cdninstagram.com/v/t51/111_AAA_n.jpg?stp=p640 640w, https://x.cdninstagram.com/v/t51/111_AAA_n.jpg?stp=p1080 1080w"></div></li>
+    <li><div><img src="https://x.cdninstagram.com/v/t51/222_BBB_n.jpg?stp=p640" srcset="https://x.cdninstagram.com/v/t51/222_BBB_n.jpg?stp=p640 640w"></div></li>
+    <li><div><img src="https://x.cdninstagram.com/v/t51/333_CCC_n.jpg?stp=p640"></div></li>
+  </ul></div>
+  <a href="/p/CAROUSEL001/"><time datetime="2026-10-01T08:30:00.000Z">Oct 1</time></a>
+</article>
+<!-- Feed post 2: single photo, API will FAIL -> DOM fallback -->
+<article id="post2">
+  <header><a href="/bob_123/" role="link">bob_123</a></header>
+  <div class="frame"><div><img src="https://x.cdninstagram.com/v/t51/999_ZZZ_n.jpg?stp=p640" srcset="https://x.cdninstagram.com/v/t51/999_ZZZ_n.jpg?stp=p480 480w, https://x.cdninstagram.com/v/t51/999_ZZZ_n.jpg?stp=p1080 1080w"></div></div>
+  <a href="/p/SINGLEFAIL1/"><time datetime="2026-09-15T20:00:00.000Z">Sep 15</time></a>
+</article>
+<!-- Feed video A: Instagram-like invisible play/mute layer over the video, inside the frame -->
+<article id="vpostA">
+  <header><a href="/erin/" role="link">erin</a></header>
+  <div class="frame" style="position:relative">
+    <div style="position:relative;z-index:0;width:470px;height:470px"><div style="width:470px;height:470px"><video id="vA" src="blob:https://www.instagram.com/va" style="width:470px;height:470px;display:block;background:#333"></video></div></div>
+    <div class="playlayer" style="position:absolute;inset:0;z-index:1"></div>
+  </div>
+  <a href="/p/VIDEOPOSTA1/"><time datetime="2026-11-01T10:00:00.000Z">Nov 1</time></a>
+</article>
+<!-- Feed video B: layer covers the whole post (no same-size ancestor to move into) -> floating button -->
+<article id="vpostB" style="position:relative">
+  <header><a href="/frank/" role="link">frank</a></header>
+  <div class="frame" style="z-index:0"><div style="position:relative;z-index:0"><div><video id="vB" src="blob:https://www.instagram.com/vb" style="width:470px;height:470px;display:block;background:#555"></video></div></div></div>
+  <div class="playlayer" style="position:absolute;inset:0;z-index:1"></div>
+  <a href="/p/VIDEOPOSTB1/"><time datetime="2026-11-02T10:00:00.000Z">Nov 2</time></a>
+</article>
+<!-- Profile grid thumbnail: must NOT get a button -->
+<main><a href="/p/GRIDTHUMB01/"><img id="grid" src="https://x.cdninstagram.com/v/t51/grid_n.jpg" style="width:300px;height:300px"></a></main>
+
+<script>
+  window.__downloads = [];
+  window.__apiCalls = [];
+  window.chrome = {
+    storage: { local: { _d: { noticeShown: true }, async get(k) { if (typeof k === 'string') return { [k]: this._d[k] }; return Object.assign({}, k, this._d); }, async set(v) { Object.assign(this._d, v); } }, onChanged: { addListener() {} } },
+    runtime: { sendMessage: async (m) => { window.__downloads.push(m); return { ok: true, id: 1 }; } }
+  };
+  const CAROUSEL = { items: [{ code: 'CAROUSEL001', taken_at: 1759307400, user: { username: 'alice' },
+    carousel_media: [
+      { image_versions2: { candidates: [{ url: 'https://x.cdninstagram.com/v/t51/111_AAA_n.jpg?orig', width: 1440, height: 1440 }, { url: 'https://x.cdninstagram.com/v/t51/111_AAA_n.jpg?small', width: 320, height: 320 }] } },
+      { image_versions2: { candidates: [{ url: 'https://x.cdninstagram.com/v/t51/222_BBB_n.jpg?small', width: 320, height: 320 }, { url: 'https://x.cdninstagram.com/v/t51/222_BBB_n.jpg?orig', width: 1440, height: 1800 }] } },
+      { image_versions2: { candidates: [{ url: 'https://x.cdninstagram.com/v/t51/333_CCC_n.jpg?orig', width: 1080, height: 1080 }] } }
+    ] }] };
+  const STORY = { items: [{ pk: '3456789012345678901', taken_at: 1762700000, user: { username: 'carol' },
+    image_versions2: { candidates: [{ url: 'https://x.cdninstagram.com/v/t51/STORY_KEY_n.jpg?orig', width: 1080, height: 1920 }] } }] };
+  // what Instagram's own app receives when it opens a video story (API calls for it will 404)
+  const STORY_VIDEO_GQL = { data: { xdt_api__v1__feed__reels_media: { reels_media: [{ items: [
+    { pk: '3999000000000000001', id: '3999000000000000001_42', taken_at: 1762600000, user: { username: 'dave.v' },
+      image_versions2: { candidates: [{ url: 'https://x.cdninstagram.com/v/t51/VIDCOVER_n.jpg?stp=s1080', width: 1080, height: 1920 }] },
+      video_versions: [{ url: 'https://x.cdninstagram.com/o1/v/t16/VID_LOW.mp4', width: 480, height: 854 },
+                       { url: 'https://x.cdninstagram.com/o1/v/t16/VID_HIGH.mp4', width: 1080, height: 1920 }] } ] }] } } };
+  const vid = (code, user, t) => ({ pk: code + 'PK', id: code + 'PK_1', code, taken_at: t, user: { username: user },
+    image_versions2: { candidates: [{ url: 'https://x.cdninstagram.com/v/t51/' + code + '_cover_n.jpg', width: 1080, height: 1080 }] },
+    video_versions: [{ url: 'https://x.cdninstagram.com/o1/v/' + code + '_480.mp4', width: 480, height: 480 },
+                     { url: 'https://x.cdninstagram.com/o1/v/' + code + '_1080.mp4', width: 1080, height: 1080 }] });
+  const FEED_GQL = { data: { xdt_api__v1__feed__timeline__connection: { edges: [
+    { node: { media: vid('VIDEOPOSTA1', 'erin', 1762000000) } }, { node: { media: vid('VIDEOPOSTB1', 'frank', 1762086400) } } ] } } };
+  window.fetch = async (url) => {
+    window.__apiCalls.push(String(url));
+    const ok = (j) => ({ ok: true, status: 200, json: async () => j });
+    if (String(url).includes('/media/3456789012345678901/info/')) return ok(STORY);
+    if (String(url).includes('/graphql/feed')) return { ok: true, status: 200, json: async () => FEED_GQL, text: async () => JSON.stringify(FEED_GQL), clone() { return this; } };
+    if (String(url).includes('/graphql/query')) return { ok: true, status: 200, json: async () => STORY_VIDEO_GQL, text: async () => JSON.stringify(STORY_VIDEO_GQL), clone() { return this; } };
+    if (String(url).includes('/info/') && !String(url).includes(window.__failId)) return ok(CAROUSEL);
+    return { ok: false, status: 404, json: async () => ({}) };
+  };
+</script>
+<script src="../src/utils.js"></script>
+<script src="../src/page-hook.js"></script>
+<script>window.__failId = IGDL.shortcodeToMediaId('SINGLEFAIL1');</script>
+<script src="../src/content.js"></script>
+<script src="run-mock.js"></script>
+</body></html>

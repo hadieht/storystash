@@ -74,7 +74,7 @@ Certifications → tick all three:
 - [x] I do not use or transfer user data for purposes that are unrelated to my item's single purpose
 - [x] I do not use or transfer user data to determine creditworthiness or for lending purposes
 
-**Privacy policy URL**: `https://hadieht.github.io/storystash/privacy.html`  ← fill in after GitHub Pages is live (source: `docs/privacy.html`)
+**Privacy policy URL**: `https://hadieht.github.io/storystash/privacy.html` ✅ live (source: `docs/privacy.html`)
 
 ## Graphics & Assets  (store-assets/)
 | Asset | Size | Status | File |

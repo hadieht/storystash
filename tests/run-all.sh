@@ -20,7 +20,9 @@ checks = {
  'feed videos clickable+saved': all(v['clickable'] and v['toast'].startswith('Saved') and '.mp4' in v['toast'] for v in d['feedVideos']),
  'photo story': d['storyButtonClickable'] and d['photoStoryToast'].startswith('Saved carol'),
  'video story': d['videoStoryButtonClickable'] and '.mp4' in d['videoToast'],
- 'rename fallback': d['pageSave'][0]['download']=='dave.v_x.mp4'}
+ 'rename fallback': d['pageSave'][0]['download']=='dave.v_x.mp4',
+ 'photo button on video story': d['photoButtonClickable'] and d['photoOnlyDownload']['filename'].endswith('.jpg') and not d['photoOnlyDownload']['isVideo'],
+ 'music photo story saves photo': d['musicStoryDownload']['isJpegData'] and d['musicStoryDownload']['filename'].endswith('.jpg') and 'photo with music' in d['musicStoryToast']}
 bad=[k for k,v in checks.items() if not v]
 for k,v in checks.items(): print(('PASS ' if v else 'FAIL ')+'mock: '+k)
 sys.exit(1 if bad else 0)" || fail=1

@@ -4,3 +4,6 @@ store-assets/src/
 .DS_Store
 Thumbs.db
 __pycache__/
+
+# private listing notes (kept local only)
+CHROMEWEBSTORE.md

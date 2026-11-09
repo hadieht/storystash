@@ -244,28 +244,13 @@
     return domFallback(mediaEl, base);
   }
 
-  async function resolveStory(mediaEl) {
-    const path = U.parsePath(location.pathname);
-    const section = mediaEl.closest('section') || document.body;
-    const base = {
-      username: path.username || domUsername(section),
-      date: domDate(section),
-      id: path.storyPk || path.highlightId,
-      index: null
-    };
-    const fromItem = (item) => {
-      const r = describe(item, null, null, base);
-      if (r) r.id = item.pk || base.id;
-      return r;
-    };
-    ingestEmbeddedJson();
-    const key = mediaKeyOf(mediaEl);
-
+  /** Find Instagram's data for the story on screen (page data first, then one request). */
+  async function findStoryItem(mediaEl, path, key) {
     // 1) data Instagram already loaded: the story id is in the URL
     let item = path.storyPk ? media.byPk.get(path.storyPk) : null;
     if (!item && key) { const h = media.byKey.get(key); if (h) item = h.item; }
     if (!item && mediaEl.tagName === 'VIDEO') {
-      // video stories: Instagram shows the cover image next to the <video>
+      // video stories: Instagram may show the cover image next to the <video>
       let box = mediaEl.parentElement;
       for (let i = 0; i < 3 && box && !item; i++, box = box.parentElement) {
         for (const img of box.querySelectorAll('img')) {
@@ -274,37 +259,91 @@
         }
       }
     }
+    if (item || !settings.useApi) return item;
+
+    // 2) ask Instagram (only now, after the click)
+    try {
+      if (path.storyPk) {
+        try { return await mediaInfo(path.storyPk); } catch (e) {
+          console.debug('[StoryStash] story info failed, trying story tray:', e && e.message);
+        }
+      }
+      let reelId = null;
+      if (path.type === 'highlight') reelId = 'highlight:' + path.highlightId;
+      else if (path.username) {
+        // the account id is usually already known from Instagram's own page data
+        for (const it of media.byPk.values()) {
+          if (it.user && it.user.username === path.username && it.user.pk) { reelId = it.user.pk; break; }
+        }
+      }
+      if (reelId) {
+        const items = await reelItems(String(reelId));
+        let hit = U.matchItemByKey(items, key);
+        if (!hit && path.storyPk) {
+          const i = items.findIndex((it) => String(it.pk) === path.storyPk);
+          if (i >= 0) hit = { item: items[i], index: i };
+        }
+        if (hit) return hit.item;
+      }
+    } catch (e) {
+      console.debug('[StoryStash] story API lookup failed, using page media:', e && e.message);
+    }
+    return null;
+  }
+
+  /** Still image of what the <video> shows right now (photo stories with music are videos). */
+  async function captureFrame(video) {
+    if (video.readyState < 2) {
+      await new Promise((resolve, reject) => {
+        const t = setTimeout(() => reject(new Error('The story is still loading – try again in a second.')), 4000);
+        video.addEventListener('loadeddata', () => { clearTimeout(t); resolve(); }, { once: true });
+      });
+    }
+    const w = video.videoWidth, h = video.videoHeight;
+    if (!w || !h) throw new Error('The story is still loading – try again in a second.');
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    canvas.getContext('2d').drawImage(video, 0, 0, w, h);
+    let url;
+    try { url = canvas.toDataURL('image/jpeg', 0.95); } catch (_) {
+      throw new Error('Instagram does not allow taking the photo from this story.');
+    }
+    return { url, isVideo: false, width: w, height: h, quality: 'frame' };
+  }
+
+  /**
+   * opts.photo = true -> save only the picture (📷 button), never the video.
+   * Photo stories with music are stored by Instagram as short videos; their
+   * photo is kept as the story's image, which is what we save here.
+   */
+  async function resolveStory(mediaEl, opts = {}) {
+    const path = U.parsePath(location.pathname);
+    const section = mediaEl.closest('section') || document.body;
+    const base = {
+      username: path.username || domUsername(section),
+      date: domDate(section),
+      id: path.storyPk || path.highlightId,
+      index: null
+    };
+    const fromItem = (item, photoOnly) => {
+      const src = photoOnly ? Object.assign({}, item, { video_versions: undefined }) : item;
+      const r = describe(src, null, null, base);
+      if (r) r.id = item.pk || base.id;
+      return r;
+    };
+    ingestEmbeddedJson();
+    const key = mediaKeyOf(mediaEl);
+    const item = await findStoryItem(mediaEl, path, key);
+
     if (item) {
-      const r = fromItem(item);
+      const r = fromItem(item, !!opts.photo);
       if (r) return r;
     }
-
-    // 2) ask Instagram
-    if (settings.useApi) {
-      try {
-        if (path.storyPk) {
-          try {
-            const r = fromItem(await mediaInfo(path.storyPk));
-            if (r) return r;
-          } catch (e) { console.debug('[StoryStash] story info failed, trying story tray:', e && e.message); }
-        }
-        // highlights: load that highlight's items (the clicked one is matched by file name)
-        const reelId = path.type === 'highlight' ? 'highlight:' + path.highlightId : null;
-        if (reelId) {
-          const items = await reelItems(String(reelId));
-          let hit = U.matchItemByKey(items, key);
-          if (!hit && path.storyPk) {
-            const i = items.findIndex((it) => String(it.pk) === path.storyPk);
-            if (i >= 0) hit = { item: items[i], index: i };
-          }
-          if (hit) {
-            const r = fromItem(hit.item);
-            if (r) return r;
-          }
-        }
-      } catch (e) {
-        console.debug('[StoryStash] story API lookup failed, using page media:', e && e.message);
-      }
+    if (mediaEl.tagName === 'VIDEO') {
+      // no file found: keep the photo that is on screen instead of failing
+      const f = await captureFrame(mediaEl);
+      return Object.assign(f, base, { photoFallback: !opts.photo });
     }
     return domFallback(mediaEl, base);
   }
@@ -327,9 +366,9 @@
     setTimeout(() => URL.revokeObjectURL(href), 60000);
   }
 
-  async function download(mediaEl) {
+  async function download(mediaEl, opts = {}) {
     const isStory = location.pathname.startsWith('/stories/');
-    const r = isStory ? await resolveStory(mediaEl) : await resolvePost(mediaEl);
+    const r = isStory ? await resolveStory(mediaEl, opts) : await resolvePost(mediaEl);
     const date = settings.dateSource === 'downloaded' ? new Date() : (r.date || new Date());
     const filename = U.buildFilename({
       username: r.username,
@@ -350,12 +389,14 @@
     }
     if (!res || !res.ok) throw new Error((res && res.error) || 'Download failed');
     if (res.fallback) saveFromPage(res.fallback.dataUrl, res.fallback.name);
-    return { filename: res.fallback ? res.fallback.name : filename, renamed: !!res.fallback, quality: r.quality, width: r.width, height: r.height, converted: res.converted };
+    return { filename: res.fallback ? res.fallback.name : filename, renamed: !!res.fallback, photoFallback: !!r.photoFallback, quality: r.quality, width: r.width, height: r.height, converted: res.converted };
   }
 
   // ---------------------------------------------------------------------- ui
   const ICON_DOWNLOAD =
     '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 3a1 1 0 0 1 1 1v9.59l3.3-3.3a1 1 0 1 1 1.4 1.42l-5 5a1 1 0 0 1-1.4 0l-5-5a1 1 0 1 1 1.4-1.42l3.3 3.3V4a1 1 0 0 1 1-1zM5 19a1 1 0 1 0 0 2h14a1 1 0 1 0 0-2H5z"/></svg>';
+  const ICON_PHOTO =
+    '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M9 4 7.2 6H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-3.2L15 4H9zm3 4.5a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9zm0 2a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z"/></svg>';
   const ICON_OK =
     '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>';
   const ICON_ERR =
@@ -391,13 +432,14 @@
     return host && (host.querySelector(':scope > img, :scope > video') || host.querySelector('img, video'));
   }
 
-  function makeButton(isStory, getMedia) {
+  function makeButton(isStory, getMedia, opts = {}) {
+    const icon = opts.photo ? ICON_PHOTO : ICON_DOWNLOAD;
     const b = document.createElement('button');
     b.type = 'button';
-    b.className = BTN_CLASS + (isStory ? ' igdl-story' : '');
-    b.title = 'Download in full quality';
-    b.setAttribute('aria-label', 'Download in full quality');
-    b.innerHTML = ICON_DOWNLOAD;
+    b.className = BTN_CLASS + (isStory ? ' igdl-story' : '') + (opts.photo ? ' igdl-photo' : '');
+    b.title = opts.photo ? 'Save only the photo (JPG)' : 'Download in the largest size';
+    b.setAttribute('aria-label', b.title);
+    b.innerHTML = icon;
     ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'touchstart', 'touchend', 'dblclick', 'keydown']
       .forEach((ev) => b.addEventListener(ev, stop, true));
     b.addEventListener('click', async (e) => {
@@ -409,15 +451,17 @@
       b.classList.add('igdl-busy');
       b.classList.remove('igdl-done', 'igdl-fail');
       try {
-        const r = await download(media);
+        const r = await download(media, opts);
         showFirstRunNotice();
         b.innerHTML = ICON_OK;
         b.classList.add('igdl-done');
         const size = r.width && r.height ? ' (' + r.width + '×' + r.height + ')' : '';
         toast('Saved ' + r.filename.split('/').pop() + size +
           (r.converted ? ' – converted to JPG' : '') +
+          (r.photoFallback ? ' – saved the photo (this story is a photo with music)' : '') +
           (r.renamed ? ' – saved directly in Downloads (another extension blocks custom folders)' : '') +
-          (r.quality === 'page' ? ' – best size shown on page' : ''));
+          (r.quality === 'page' ? ' – best size shown on page' : '') +
+          (r.quality === 'frame' && !r.photoFallback ? ' – taken from the story on screen' : ''));
       } catch (err) {
         console.error('[StoryStash]', err);
         b.innerHTML = ICON_ERR;
@@ -425,7 +469,7 @@
         toast('Download failed: ' + (err && err.message ? err.message : err), true);
       } finally {
         b.classList.remove('igdl-busy');
-        setTimeout(() => { b.innerHTML = ICON_DOWNLOAD; b.classList.remove('igdl-done', 'igdl-fail'); }, 2500);
+        setTimeout(() => { b.innerHTML = icon; b.classList.remove('igdl-done', 'igdl-fail'); }, 2500);
       }
     }, true);
     return b;
@@ -531,6 +575,7 @@
   // videos, which swallowed clicks on a button placed inside the story. A
   // fixed button attached to <html> sits above every Instagram layer.
   let storyBtn = null;
+  let storyPhotoBtn = null; // 📷 next to ⤓ on video stories (photo stories with music are videos)
   let storyTarget = null;
 
   function largestMedia() {
@@ -556,11 +601,17 @@
     storyBtn.style.display = 'flex';
     storyBtn.style.top = top + 'px';
     storyBtn.style.left = left + 'px';
+    if (storyPhotoBtn) {
+      const show = t.tagName === 'VIDEO';
+      storyPhotoBtn.style.display = show ? 'flex' : 'none';
+      if (show) { storyPhotoBtn.style.top = top + 'px'; storyPhotoBtn.style.left = Math.max(left - size - 10, 8) + 'px'; }
+    }
   }
 
   function updateStoryButton(isStory) {
     if (!isStory) {
       if (storyBtn) { storyBtn.remove(); storyBtn = null; }
+      if (storyPhotoBtn) { storyPhotoBtn.remove(); storyPhotoBtn = null; }
       storyTarget = null;
       return;
     }
@@ -572,8 +623,11 @@
         return m || storyTarget;
       });
       storyBtn.classList.add('igdl-floating');
+      storyPhotoBtn = makeButton(true, () => largestMedia() || storyTarget, { photo: true });
+      storyPhotoBtn.classList.add('igdl-floating');
     }
     if (!storyBtn.isConnected) document.documentElement.appendChild(storyBtn);
+    if (!storyPhotoBtn.isConnected) document.documentElement.appendChild(storyPhotoBtn);
     placeStoryButton();
   }
 
@@ -582,7 +636,7 @@
     const isStory = location.pathname.startsWith('/stories/');
     if (isStory) {
       // post buttons are not used on the story viewer
-      document.querySelectorAll('.' + BTN_CLASS).forEach((b) => { if (b !== storyBtn) b.remove(); });
+      document.querySelectorAll('.' + BTN_CLASS).forEach((b) => { if (b !== storyBtn && b !== storyPhotoBtn) b.remove(); });
       floatingPosts.clear();
     }
     updateStoryButton(isStory);

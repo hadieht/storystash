@@ -77,6 +77,7 @@
     window.__apiCalls.push(String(url));
     const ok = (j) => ({ ok: true, status: 200, json: async () => j });
     if (String(url).includes('/media/3456789012345678901/info/')) return ok(STORY);
+    if (String(url).includes('/media/3777000000000000009/info/')) return { ok: false, status: 404, json: async () => ({}) };
     if (String(url).includes('/graphql/feed')) return { ok: true, status: 200, json: async () => FEED_GQL, text: async () => JSON.stringify(FEED_GQL), clone() { return this; } };
     if (String(url).includes('/graphql/query')) return { ok: true, status: 200, json: async () => STORY_VIDEO_GQL, text: async () => JSON.stringify(STORY_VIDEO_GQL), clone() { return this; } };
     if (String(url).includes('/info/') && !String(url).includes(window.__failId)) return ok(CAROUSEL);

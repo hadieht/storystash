@@ -191,7 +191,10 @@
       pk: String(o.pk || o.id || '').split('_')[0] || null,
       code: o.code || o.shortcode || null,
       taken_at: o.taken_at || (parent && parent.taken_at) || null,
-      user: { username: (user && user.username) || (parent && parent.user && parent.user.username) || null },
+      user: {
+        username: (user && user.username) || (parent && parent.user && parent.user.username) || null,
+        pk: (user && (user.pk || user.id) && String(user.pk || user.id)) || (parent && parent.user && parent.user.pk) || null
+      },
       image_versions2: { candidates: slimC(o.image_versions2 && o.image_versions2.candidates) },
       video_versions: slimC(o.video_versions)
     };

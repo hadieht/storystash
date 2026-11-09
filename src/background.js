@@ -91,7 +91,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   (async () => {
     try {
       const url = String(message.url || '');
-      if (!ALLOWED.test(url)) throw new Error('Refusing to download from a non-Instagram host');
+      const isOwnPhoto = /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(url) && !message.isVideo;
+      if (!ALLOWED.test(url) && !isOwnPhoto) throw new Error('Refusing to download from a non-Instagram host');
       const r = await igdlDownload({ url, filename: message.filename, isVideo: !!message.isVideo });
       sendResponse(Object.assign({ ok: true }, r));
     } catch (err) {

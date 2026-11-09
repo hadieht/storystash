@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "StoryStash – Story & Post Saver",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Adds a download button to Instagram™ stories, photos and videos and saves the largest available size, named by username and date.",
   "icons": {
     "16": "icons/icon-16.png",

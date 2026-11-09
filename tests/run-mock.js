@@ -29,8 +29,12 @@
   for (const id of ['vA', 'vB']) {
     const v = document.getElementById(id);
     v.scrollIntoView({ block: 'center' });
-    await sleep(700);
-    const b = btns().find((x) => x._media === v);
+    let b = null;
+    for (let w = 0; w < 20; w++) { // the extension re-checks placement after scrolling
+      await sleep(100);
+      b = btns().find((x) => x._media === v);
+      if (b && onTop(b)) break;
+    }
     const info = { id, hasButton: !!b };
     if (b) {
       info.floating = b.classList.contains('igdl-floating');
@@ -83,6 +87,31 @@
   btns()[0].click();
   await sleep(400);
   out.videoToast = document.getElementById('igdl-toast').textContent;
+
+  // 📷 on a video story: save only the photo (Instagram's still image of the story)
+  const photoBtn = document.querySelector('.igdl-photo');
+  out.photoButtonShownOnVideo = !!photoBtn && photoBtn.style.display !== 'none';
+  out.photoButtonClickable = !!photoBtn && onTop(photoBtn);
+  photoBtn.click();
+  await sleep(400);
+  out.photoOnlyToast = document.getElementById('igdl-toast').textContent;
+  out.photoOnlyDownload = window.__downloads[window.__downloads.length - 1];
+
+  // photo story with music, not in Instagram's data and API fails: ⤓ must save the photo, not fail
+  history.pushState({}, '', '/stories/gina/3777000000000000009/');
+  const cv = document.createElement('canvas'); cv.width = 1080; cv.height = 1920;
+  const cx = cv.getContext('2d'); cx.fillStyle = '#e11d48'; cx.fillRect(0, 0, 1080, 1920); cx.fillStyle = '#fff'; cx.fillRect(300, 700, 480, 480);
+  s.innerHTML = storyHtml('<video id="mstory" muted autoplay style="width:400px;height:700px;display:block"></video>');
+  const mv = document.getElementById('mstory');
+  mv.srcObject = cv.captureStream(10);
+  const keepDrawing = setInterval(() => cx.fillRect(300, 700, 480, 480), 100);
+  await sleep(2000);
+  btns().find((b) => !b.classList.contains('igdl-photo')).click();
+  await sleep(1500);
+  clearInterval(keepDrawing);
+  out.musicStoryToast = document.getElementById('igdl-toast').textContent;
+  const md = window.__downloads[window.__downloads.length - 1];
+  out.musicStoryDownload = { filename: md.filename, isVideo: md.isVideo, isJpegData: md.url.startsWith('data:image/jpeg;base64,') };
 
   // another extension hijacked the name -> worker hands the file back, page saves it via <a download>
   const saved = [];

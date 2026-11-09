@@ -20,6 +20,7 @@ reels and stories). Click it and **that exact photo** is saved in the best quali
 | File name | `username_YYYY-MM-DD_HH-mm-ss_<postcode>[_<slide>].jpg`, e.g. `natgeo_2026-11-09_14-05-07_C1a2B3c4D5e_2.jpg`. The date is when the post/story was **published** (you can switch to download date). |
 | Where | `Downloads/Instagram/…` by default (settings are stored only on this computer). Click the extension icon to change the folder, use one folder per user, or pick which date goes in the name. |
 | Videos / reels / video stories | Saved as `.mp4` in the highest quality. The extension reads the video data Instagram's own app already loaded (no extra request needed); the Instagram API is only a backup. |
+| Photo stories with music | Instagram turns these into short videos. Video stories get a second 📷 button that saves only the photo (JPG). If no video file can be found, ⤓ also saves the photo instead of failing. |
 | Always JPG | Every photo is checked: real JPEGs are saved byte-for-byte; WebP (or anything else) is converted to JPG at full resolution, quality 95. |
 | File name protection | Other download extensions can overwrite file names (that produced names like `893869779_1858…_n.jpg`). StoryStash now claims the name itself and, after each download, checks the name Chrome actually used. If another extension replaced it, the wrong file is deleted and saved again with the right name (in that case directly in Downloads, without the sub-folder). |
 

@@ -28,7 +28,7 @@ for k,v in checks.items(): print(('PASS ' if v else 'FAIL ')+'mock: '+k)
 sys.exit(1 if bad else 0)" || fail=1
 
 bash tests/sw-test.sh > "$SCR/sw.log" 2>&1 || fail=1
-echo "worker tests passed: $(grep -c 'SW TEST PASSED' "$SCR/sw.log")/4"
+echo "worker tests passed: $(grep -c 'SW TEST PASSED' "$SCR/sw.log")/6"
 
 B="$HOME/snap/chromium/common/igload"; rm -rf "$B"; mkdir -p "$B/prof"; cp -r . "$B/ext"
 chromium --headless=new --no-sandbox --disable-gpu --user-data-dir="$B/prof" --disable-extensions-except="$B/ext" \

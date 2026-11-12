@@ -19,10 +19,14 @@ run() {
   node "$SRC/tests/sw-test.mjs" 9333 "$B/dl" http://127.0.0.1:8765/tests/fixtures || status=1
   kill $CH 2>/dev/null; wait $CH 2>/dev/null; sleep 1
 }
-for mode in rename empty; do
+for mode in rename empty takeover; do
   echo "##### hijacker mode: $mode"
   if [ $mode = empty ]; then
     echo 'chrome.downloads.onDeterminingFilename.addListener((item, suggest) => { suggest(); });' > "$B/ext/tests/hijacker/bg.js"
+  fi
+  if [ $mode = takeover ]; then
+    # like IDM: cancels http(s) downloads in Chrome to download them itself
+    echo 'chrome.downloads.onCreated.addListener((d) => { if (/^https?:/.test(d.url)) chrome.downloads.cancel(d.id); });' > "$B/ext/tests/hijacker/bg.js"
   fi
   run "$B/ext/tests/hijacker,$B/ext"
   run "$B/ext,$B/ext/tests/hijacker"

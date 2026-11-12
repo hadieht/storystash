@@ -7,25 +7,50 @@ const ALLOWED = /^https:\/\/([a-z0-9-]+\.)*(cdninstagram\.com|fbcdn\.net)\//i;
 // between chrome.downloads.download() and Chrome choosing the name.
 const pendingNames = new Map();
 
-// Chrome lets the LAST extension listening here decide the file name. Other
-// extensions (download managers etc.) can override names, which produced raw
+// Chrome lets the LAST extension listening here decide the file name. Download
+// managers (e.g. IDM Integration Module) can override names, which produced raw
 // CDN names like "893869779_1858…_n.jpg". Answering here makes our name stick.
-chrome.downloads.onDeterminingFilename.addListener((item, suggest) => {
-  if (item.byExtensionId === chrome.runtime.id) {
-    const name = pendingNames.get(item.url) || pendingNames.get(item.finalUrl);
-    if (name) {
-      pendingNames.delete(item.url);
-      suggest({ filename: name, conflictAction: 'uniquify' });
-      return;
-    }
+//
+// The listener is attached ONLY while one of our own downloads is being named
+// and removed right after, so StoryStash never takes part in naming any other
+// download (no "another extension determined a different filename" warnings
+// on other extensions for downloads that are not ours).
+function onDetermineName(item, suggest) {
+  const name = item.byExtensionId === chrome.runtime.id &&
+    (pendingNames.get(item.url) || pendingNames.get(item.finalUrl));
+  if (name) {
+    pendingNames.delete(item.url);
+    suggest({ filename: name, conflictAction: 'uniquify' });
+  } else {
+    suggest(); // not ours – no opinion
   }
-  suggest(); // not ours – leave it alone
-});
+  releaseNameListener();
+}
+
+function holdNameListener() {
+  if (!chrome.downloads.onDeterminingFilename.hasListener(onDetermineName)) {
+    chrome.downloads.onDeterminingFilename.addListener(onDetermineName);
+  }
+}
+
+function releaseNameListener() {
+  if (pendingNames.size === 0 && chrome.downloads.onDeterminingFilename.hasListener(onDetermineName)) {
+    chrome.downloads.onDeterminingFilename.removeListener(onDetermineName);
+  }
+}
+self.igdlNameListenerActive = () => chrome.downloads.onDeterminingFilename.hasListener(onDetermineName); // tests
 
 async function startDownload(url, filename) {
   pendingNames.set(url, filename);
-  setTimeout(() => pendingNames.delete(url), 120000);
-  return chrome.downloads.download({ url, filename, conflictAction: 'uniquify', saveAs: false });
+  holdNameListener();
+  setTimeout(() => { pendingNames.delete(url); releaseNameListener(); }, 60000);
+  try {
+    return await chrome.downloads.download({ url, filename, conflictAction: 'uniquify', saveAs: false });
+  } catch (err) {
+    pendingNames.delete(url);
+    releaseNameListener();
+    throw err;
+  }
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -56,8 +81,28 @@ async function fetchAsDataUrl(url) {
  * script can save it with the right name from the page.
  */
 async function downloadVerified(url, filename, getData) {
+  try {
+    return await downloadVerifiedInner(url, filename, getData);
+  } finally {
+    // naming is over for this file (or never happened because it was taken over)
+    pendingNames.delete(url);
+    releaseNameListener();
+  }
+}
+
+async function downloadVerifiedInner(url, filename, getData) {
   const id = await startDownload(url, filename);
   const it = await waitFor(id, (d) => !!d.filename || d.state !== 'in_progress', 15000);
+  // Download managers (IDM etc.) "take over" a download by cancelling it in
+  // Chrome right after it starts. Give them a moment, then check.
+  await sleep(1200);
+  const [now] = await chrome.downloads.search({ id });
+  const takenOver = !now || (now.state === 'interrupted' && /USER_CANCELED/i.test(now.error || ''));
+  if (takenOver) {
+    console.warn('[StoryStash] another download manager took over the download – saving from the page instead');
+    try { await chrome.downloads.erase({ id }); } catch (_) { /* ignore */ }
+    return { id, renamed: true, takenOver: true, fallback: { name: baseName(filename), dataUrl: await getData() } };
+  }
   if (!it || baseName(it.filename) === baseName(filename)) return { id, renamed: false };
 
   console.warn('[StoryStash] another extension renamed the download to', it.filename, '- re-saving');

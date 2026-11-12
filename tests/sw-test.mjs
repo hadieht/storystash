@@ -38,29 +38,36 @@ const run = async (expr) => {
 const photo = await run(`igdlDownload({ url: '${base}/sample.webp', filename: 'Instagram/alice_2026-11-09_10-00-00_CODE1_2.webp', isVideo: false })`);
 const video = await run(`igdlDownload({ url: '${base}/sample.mp4', filename: 'Instagram/dave.v_2026-11-08_12-26-40_3999.mp4', isVideo: true })`);
 await sleep(3000);
+const listenerAfter = await run('igdlNameListenerActive()');
+console.log('naming listener still attached after our downloads:', listenerAfter);
 const names = await run(`chrome.downloads.search({}).then(l => l.map(d => ({ file: d.filename, state: d.state, err: d.error })))`);
 console.log(JSON.stringify({ names }, null, 1));
 
 const files = [];
 const walk = (d) => { for (const e of readdirSync(d, { withFileTypes: true })) { const p = d + '/' + e.name; e.isDirectory() ? walk(p) : files.push(p); } };
 walk(dlDir);
-let ok;
+// each file must end up EITHER saved directly with our name in Downloads/Instagram,
+// OR (when another extension renamed / took it over) handed back for saving from the page.
 const wrong = files.filter((f) => /HIJACKED|sample\.|download\.jpeg/.test(f));
-if (photo.renamed || video.renamed) {
-  // another extension won the naming: bad copies must be deleted and the file handed back for page save
-  const pj = photo.fallback && photo.fallback.dataUrl.startsWith('data:image/jpeg;base64,');
-  const magic = pj ? [...Buffer.from(photo.fallback.dataUrl.split(',')[1], 'base64').subarray(0, 3)] : [];
-  console.log('mode: fallback | photo name:', photo.fallback && photo.fallback.name, '| video name:', video.fallback && video.fallback.name);
-  console.log('fallback jpg magic FF D8 FF:', magic.join(',') === '255,216,255', '| leftover wrong files:', wrong.length);
-  ok = pj && magic.join(',') === '255,216,255' && photo.fallback.name === 'alice_2026-11-09_10-00-00_CODE1_2.jpg' &&
-       video.fallback && video.fallback.name === 'dave.v_2026-11-08_12-26-40_3999.mp4' && wrong.length === 0;
-} else {
-  const jpg = files.find((f) => f.endsWith('/Instagram/alice_2026-11-09_10-00-00_CODE1_2.jpg'));
-  const mp4 = files.find((f) => f.endsWith('/Instagram/dave.v_2026-11-08_12-26-40_3999.mp4'));
-  const head = jpg ? [...readFileSync(jpg).subarray(0, 3)] : [];
-  console.log('mode: direct | jpg magic FF D8 FF:', head.join(',') === '255,216,255');
-  ok = !!jpg && head.join(',') === '255,216,255' && !!mp4 && wrong.length === 0;
+function check(label, res, wantName, isJpeg) {
+  if (res.renamed) {
+    const okName = res.fallback && res.fallback.name === wantName;
+    let okData = !!(res.fallback && res.fallback.dataUrl.startsWith('data:'));
+    if (isJpeg && okData) okData = [...Buffer.from(res.fallback.dataUrl.split(',')[1], 'base64').subarray(0, 3)].join(',') === '255,216,255';
+    console.log(`${label}: fallback (${res.takenOver ? 'taken over' : 'renamed'}) | name ok: ${okName} | data ok: ${okData}`);
+    return okName && okData;
+  }
+  const f = files.find((x) => x.endsWith('/Instagram/' + wantName));
+  let okData = !!f;
+  if (isJpeg && f) okData = [...readFileSync(f).subarray(0, 3)].join(',') === '255,216,255';
+  console.log(`${label}: direct | saved as Instagram/${wantName}: ${!!f} | data ok: ${okData}`);
+  return okData;
 }
+let ok = check('photo', photo, 'alice_2026-11-09_10-00-00_CODE1_2.jpg', true) &
+         check('video', video, 'dave.v_2026-11-08_12-26-40_3999.mp4', false);
+ok = !!ok && wrong.length === 0;
+console.log('leftover wrongly named files:', wrong.length);
+if (listenerAfter) ok = false; // must not stay in other downloads' way (IDM warning)
 console.log(ok ? 'SW TEST PASSED' : 'SW TEST FAILED');
 b.close(); c.close();
 process.exit(ok ? 0 : 1);

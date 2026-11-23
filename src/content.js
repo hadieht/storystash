@@ -214,8 +214,10 @@
     ingestEmbeddedJson();
 
     // 1) exact file match in the data Instagram already loaded (knows the slide)
+    // For VIDEO elements, the src/poster is usually a thumbnail – skip key match
+    // and rely on the post/shortcode lookup which has the real video data.
     const key = mediaKeyOf(mediaEl);
-    const hit = key ? media.byKey.get(key) : null;
+    const hit = (mediaEl.tagName !== 'VIDEO' && key) ? media.byKey.get(key) : null;
     if (hit) {
       const r = describe(hit.item, hit.parent, hit.parent ? hit.index : null, base);
       if (r) return r;

@@ -24,7 +24,8 @@ function onDetermineName(item, suggest) {
   } else {
     suggest(); // not ours – no opinion
   }
-  releaseNameListener();
+  // Do NOT release the listener here – other downloads may still be pending.
+  // releaseNameListener() is called only when pendingNames becomes empty.
 }
 
 function holdNameListener() {
